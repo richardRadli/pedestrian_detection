@@ -19,6 +19,12 @@ class _Const(object):
                 "/home/keplab/Documents/users/hudak_elza/storage/",
             "DATASET_ROOT":
                 "/home/keplab/Documents/users/hudak_elza/datasets/"
+        },
+        "ricsi": {
+            "PROJECT_ROOT":
+                "D:/storage_for_ped_det",
+            "DATASET_ROOT":
+                "D:/datasets/"
         }
     }
 

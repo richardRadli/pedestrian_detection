@@ -13,8 +13,8 @@ def dataset_configs(cfg) -> Dict:
             'train_images': DATASET_PATH.get_data_path("caltech_train"),
             'valid_images': DATASET_PATH.get_data_path("caltech_valid"),
             'test_images': DATASET_PATH.get_data_path("caltech_test"),
-            'classes': ['pedestrian'],
-            'num_classes': 1,
+            'classes': ['background', 'Arduino_Nano', 'ESP8266', 'Raspberry_Pi_3', 'Heltec_ESP32_Lora'],
+            'num_classes': 5,
             "width": 640,
             "height": 480,
             "nms": 0.45
