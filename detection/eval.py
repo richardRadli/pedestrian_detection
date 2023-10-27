@@ -35,7 +35,7 @@ class EvalObjectDetectionModel:
         self.test_loader = DataLoader(
             test_dataset,
             batch_size=1,
-            shuffle=True,
+            shuffle=False,
             num_workers=0,
             collate_fn=collate_fn
         )
@@ -87,7 +87,7 @@ class EvalObjectDetectionModel:
         preds = []
         preds2 = []
 
-        for _, data in enumerate(prog_bar):
+        for idx, data in enumerate(prog_bar):
             images, targets = data
             images = list(image.to(self.device) for image in images)
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
@@ -99,19 +99,43 @@ class EvalObjectDetectionModel:
             for i in range(len(images)):
                 true_dict = dict()
                 preds_dict = dict()
+                preds2_dict = dict()
+
                 true_dict['boxes'] = targets[i]['boxes'].detach().cpu()
                 true_dict['labels'] = targets[i]['labels'].detach().cpu()
+
                 preds_dict['boxes'] = outputs[i]['boxes'].detach().cpu()
                 preds_dict['scores'] = outputs[i]['scores'].detach().cpu()
                 preds_dict['labels'] = outputs[i]['labels'].detach().cpu()
+
+                if i < len(outputs) and len(outputs[i]['labels']) > 0:
+                    preds2_dict['labels'] = torch.tensor([outputs[i]['labels'][0].item()])
+                else:
+                    preds2_dict['labels'] = torch.tensor([])
+
                 preds.append(preds_dict)
-                preds2.append(outputs[i]['labels'][0].detach().cpu().numpy())
+                preds2.append(preds2_dict)
                 gt.append(true_dict)
+
+            if idx == 45:
+                break
 
         self.mean_avg_precision(preds, gt)
 
+        print(len(gt), len(preds2))
+        # Create target tensor as before
         target = torch.tensor([int(item['labels']) for item in gt])
-        predictions = torch.tensor([int(arr) for arr in preds2])
+
+        # Create predictions tensor and assign a label of 0 to items with empty 'labels'
+        predictions = []
+        for item in preds2:
+            if item['labels'].numel() > 0:
+                predictions.append(item['labels'])
+            else:
+                predictions.append(torch.tensor([0]))
+
+        # Concatenate the tensors in the predictions list
+        predictions = torch.cat(predictions)
 
         self.precision(target, predictions)
         self.recall(target, predictions)
