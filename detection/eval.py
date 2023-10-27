@@ -1,5 +1,4 @@
 import colorama
-import numpy as np
 import logging
 import torch
 import typing
@@ -7,6 +6,7 @@ import typing
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchmetrics.detection.mean_ap import MeanAveragePrecision
+from torchvision.ops import box_iou
 
 from dataloader import CaltechDatasetLoader
 from detection_models.network_selectory import NetworkFactory
@@ -55,11 +55,14 @@ class EvalObjectDetectionModel:
 
         logging.info(mAP)
 
-    def validate(self):
+    def calculate_metrics(self, iou_threshold=0.5):
         self.model.eval()
 
         # Initialize tqdm progress bar.
         prog_bar = tqdm(self.test_loader, total=len(self.test_loader))
+        all_true_positives = 0
+        all_false_positives = 0
+        all_actual_positives = 0
         gt = []
         preds = []
 
@@ -71,8 +74,27 @@ class EvalObjectDetectionModel:
             with torch.no_grad():
                 outputs = self.model(images, targets)
 
-            # For mAP calculation using Torchmetrics.
             for i in range(len(images)):
+                true_boxes = targets[i]['boxes'].cpu()
+                pred_boxes = outputs[i]['boxes'].cpu()
+                iou_matrix = box_iou(true_boxes, pred_boxes)
+
+                # Calculate true positives, false positives, and actual positives for each image
+                image_true_positives = 0
+                image_actual_positives = len(true_boxes)
+
+                for t, p in zip(true_boxes, pred_boxes):
+                    iou = iou_matrix.max(dim=1)[0]  # Maximum IoU for each true box
+                    if iou.max() >= iou_threshold:
+                        image_true_positives += 1
+
+                image_false_positives = len(pred_boxes) - image_true_positives
+
+                all_true_positives += image_true_positives
+                all_actual_positives += image_actual_positives
+                all_false_positives += image_false_positives
+
+                # For mAP calculation using Torchmetrics.
                 true_dict = dict()
                 preds_dict = dict()
 
@@ -86,9 +108,19 @@ class EvalObjectDetectionModel:
                 preds.append(preds_dict)
                 gt.append(true_dict)
 
-        self.mean_avg_precision(preds, gt)
+        overall_precision = all_true_positives / (all_true_positives + all_false_positives)
+        overall_recall = all_true_positives / all_actual_positives
+
+        logging.info(f"Precision: {overall_precision}, Recall: {overall_recall}")
+
+        # Calculate mAP using Torchmetrics
+        metric = MeanAveragePrecision()
+        metric.update(preds, gt)
+        mAP = metric.compute()
+
+        logging.info(f"mAP: {mAP}")
 
 
 if __name__ == '__main__':
     evaluation = EvalObjectDetectionModel()
-    evaluation.validate()
+    evaluation.calculate_metrics()
