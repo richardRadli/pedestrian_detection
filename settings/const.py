@@ -67,13 +67,9 @@ class Images(_Const):
     dirs_images = {
         "plotting_faster_rcnn":
             "images/prediction/faster_rcnn",
-        "confusion_matrix_faster_rcnn":
-            "images/cm/faster_rcnn",
 
         "plotting_ssd":
             "images/prediction/ssd",
-        "confusion_matrix_ssd":
-            "images/cm/ssd",
     }
 
     # ------------------------------------------------------------------------------------------------------------------

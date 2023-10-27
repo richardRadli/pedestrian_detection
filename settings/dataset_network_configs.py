@@ -13,8 +13,8 @@ def dataset_configs(cfg) -> Dict:
             'train_images': DATASET_PATH.get_data_path("caltech_train"),
             'valid_images': DATASET_PATH.get_data_path("caltech_valid"),
             'test_images': DATASET_PATH.get_data_path("caltech_test"),
-            'classes': ['background', 'Arduino_Nano', 'ESP8266', 'Raspberry_Pi_3', 'Heltec_ESP32_Lora'],
-            'num_classes': 5,
+            'classes': ['background', 'pedestrian'],
+            'num_classes': 2,
             "width": 640,
             "height": 480,
             "nms": 0.45
@@ -24,8 +24,11 @@ def dataset_configs(cfg) -> Dict:
             'train_images': DATASET_PATH.get_data_path("ecp_train"),
             'valid_images': DATASET_PATH.get_data_path("ecp_valid"),
             'test_images': DATASET_PATH.get_data_path("ecp_test"),
-            'classes': ['pedestrian'],
-            'num_classes': 1
+            'classes': ['background', 'pedestrian'],
+            'num_classes': 2,
+            "width": 640,
+            "height": 480,
+            "nms": 0.45
         }
     }
 
@@ -53,9 +56,7 @@ def network_configs(cfg) -> Dict:
             'prediction_folder':
                 DATA_PATH.get_data_path("prediction_txt_faster_rcnn"),
             'plotting_folder':
-                IMAGES_PATH.get_data_path("plotting_faster_rcnn"),
-            'confusion_matrix':
-                IMAGES_PATH.get_data_path("confusion_matrix_faster_rcnn"),
+                IMAGES_PATH.get_data_path("plotting_faster_rcnn")
         },
         'SSD': {
             'logs_folder':
@@ -66,8 +67,6 @@ def network_configs(cfg) -> Dict:
                 DATA_PATH.get_data_path("prediction_txt_ssd"),
             'plotting_folder':
                 IMAGES_PATH.get_data_path("plotting_ssd"),
-            'confusion_matrix':
-                IMAGES_PATH.get_data_path("confusion_matrix_ssd"),
         },
     }
 

@@ -31,7 +31,7 @@ class CaltechDatasetLoader(Dataset):
         self.width = width
         self.classes = classes
         
-        self.image_paths = glob.glob(f"{self.dir_path}/*.jpg")
+        self.image_paths = glob.glob(f"{self.dir_path}/*.png")
         self.all_images = [os.path.basename(image_path) for image_path in self.image_paths]
         self.all_images = sorted(self.all_images)
 

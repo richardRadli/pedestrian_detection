@@ -1,5 +1,9 @@
 import colorama
+import cv2
 import logging
+import pandas as pd
+import numpy as np
+import os
 import torch
 import typing
 
@@ -12,19 +16,21 @@ from dataloader import CaltechDatasetLoader
 from detection_models.network_selectory import NetworkFactory
 from settings.config import ConfigObjectDetection
 from settings.dataset_network_configs import dataset_configs, network_configs
-from utils.utils import collate_fn, get_valid_transform, find_latest_file_in_latest_directory
+from utils.utils import collate_fn, create_timestamp, get_valid_transform, find_latest_file_in_latest_directory
 
 
 class EvalObjectDetectionModel:
     def __init__(self):
+        self.timestamp = create_timestamp()
+
         colorama.init()
 
         self.cfg = ConfigObjectDetection().parse()
 
         self.dataset_config = dataset_configs(self.cfg)
-        network_config = network_configs(self.cfg)
+        self.network_config = network_configs(self.cfg)
 
-        latest_model_file = find_latest_file_in_latest_directory(network_config.get("weights_folder"))
+        latest_model_file = find_latest_file_in_latest_directory(self.network_config.get("weights_folder"))
 
         test_dataset = CaltechDatasetLoader(self.dataset_config.get("test_images"),
                                             self.dataset_config.get("width"),
@@ -47,6 +53,10 @@ class EvalObjectDetectionModel:
         self.model.load_state_dict(checkpoint)
         self.model.to(self.device)
 
+        self.overall_precision = None
+        self.overall_recall = None
+        self.mAP = None
+
     @staticmethod
     def mean_avg_precision(predictions: typing.List, gt: typing.List):
         metric = MeanAveragePrecision()
@@ -54,6 +64,21 @@ class EvalObjectDetectionModel:
         mAP = metric.compute()
 
         logging.info(mAP)
+
+    def save_metrics_to_txt(self):
+        pd.set_option('display.max_rows', None)
+        pd.set_option('display.max_columns', None)
+        pd.set_option('display.width', None)
+        pd.set_option('display.max_colwidth', None)
+
+        results_df = pd.DataFrame({
+            'Precision': [self.overall_precision],
+            'Recall': [self.overall_recall],
+            'mAP': [self.mAP]
+        })
+
+        results_df.to_csv(os.path.join(self.network_config['prediction_folder'],
+                                       self.timestamp + "_metrics_prediction.txt"), sep='\t', index=True)
 
     def calculate_metrics(self, iou_threshold=0.5):
         self.model.eval()
@@ -83,7 +108,7 @@ class EvalObjectDetectionModel:
                 image_true_positives = 0
                 image_actual_positives = len(true_boxes)
 
-                for t, p in zip(true_boxes, pred_boxes):
+                for _, _ in zip(true_boxes, pred_boxes):
                     iou = iou_matrix.max(dim=1)[0]  # Maximum IoU for each true box
                     if iou.max() >= iou_threshold:
                         image_true_positives += 1
@@ -108,19 +133,69 @@ class EvalObjectDetectionModel:
                 preds.append(preds_dict)
                 gt.append(true_dict)
 
-        overall_precision = all_true_positives / (all_true_positives + all_false_positives)
-        overall_recall = all_true_positives / all_actual_positives
+            if idx == 10:
+                break
 
-        logging.info(f"Precision: {overall_precision}, Recall: {overall_recall}")
+        self.overall_precision = all_true_positives / (all_true_positives + all_false_positives)
+        self.overall_recall = all_true_positives / all_actual_positives
+
+        logging.info(f"Precision: {self.overall_precision}, Recall: {self.overall_recall}")
 
         # Calculate mAP using Torchmetrics
         metric = MeanAveragePrecision()
         metric.update(preds, gt)
-        mAP = metric.compute()
+        self.mAP = metric.compute()
 
-        logging.info(f"mAP: {mAP}")
+        logging.info(f"mAP: {self.mAP}")
+
+        self.save_metrics_to_txt()
+
+        return images, outputs
+
+    def plot_detected_bboxes(self, images, outputs, detection_threshold: float = 0.5):
+        tensor_image = images[0]
+
+        # Convert the tensor image to a NumPy array
+        numpy_image = tensor_image.cpu().numpy()
+
+        # Rearrange the color channels from RGB to BGR order
+        bgr_image = numpy_image[[2, 1, 0], :, :]
+
+        # Convert the NumPy array to a BGR image
+        bgr_image = np.transpose(bgr_image, (1, 2, 0))
+        bgr_image *= 255.0
+        bgr_image = bgr_image.astype(np.uint8)
+
+        # Create a copy of the BGR image to draw on
+        image_with_boxes = bgr_image.copy()
+
+        outputs = [{k: v.to('cpu') for k, v in t.items()} for t in outputs]
+
+        if len(outputs[0]['boxes']) != 0:
+            boxes = outputs[0]['boxes'].data.numpy()
+            scores = outputs[0]['scores'].data.numpy()
+            print(str(scores[0]), type(str(scores[0])))
+            boxes = boxes[scores >= detection_threshold].astype(np.int32)
+            draw_boxes = boxes.copy()
+
+            pred_classes = [self.dataset_config.get("classes")[i] for i in outputs[0]['labels'].cpu().numpy()]
+
+            for j, box in enumerate(draw_boxes):
+                cv2.rectangle(img=image_with_boxes,
+                              pt1=(int(box[0]), int(box[1])),
+                              pt2=(int(box[2]), int(box[3])),
+                              color=(0, 0, 255),
+                              )
+                cv2.putText(image_with_boxes, (pred_classes[j] + " " + str(scores[0])),
+                            (int(box[0]), int(box[1] - 5)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255),
+                            2, lineType=cv2.LINE_AA)
+
+                cv2.imshow('Prediction', image_with_boxes)
+                cv2.waitKey()
 
 
 if __name__ == '__main__':
     evaluation = EvalObjectDetectionModel()
-    evaluation.calculate_metrics()
+    images, outputs=evaluation.calculate_metrics()
+    evaluation.plot_detected_bboxes(images, outputs)
