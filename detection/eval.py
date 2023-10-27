@@ -1,11 +1,11 @@
 import colorama
+import numpy as np
 import logging
 import torch
 import typing
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from torchmetrics.classification import Precision, Recall, F1Score
 from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
 from dataloader import CaltechDatasetLoader
@@ -55,29 +55,6 @@ class EvalObjectDetectionModel:
 
         logging.info(mAP)
 
-        return mAP
-
-    def precision(self, predictions, gt):
-        p = Precision(task="multiclass", average='macro', num_classes=self.dataset_config.get("num_classes"))
-        res = p(predictions, gt)
-        logging.info(f"P: {res}")
-
-        return res
-
-    def recall(self, predictions, gt):
-        recall = Recall(task="multiclass", average='macro', num_classes=self.dataset_config.get("num_classes"))
-        res = recall(predictions, gt)
-        logging.info(f"R: {res}")
-
-        return res
-
-    def f1_score(self, predictions, gt):
-        f1 = F1Score(task="multiclass", num_classes=self.dataset_config.get("num_classes"))
-        res = f1(predictions, gt)
-        logging.info(f"F1 score: {res}")
-
-        return res
-
     def validate(self):
         self.model.eval()
 
@@ -85,7 +62,6 @@ class EvalObjectDetectionModel:
         prog_bar = tqdm(self.test_loader, total=len(self.test_loader))
         gt = []
         preds = []
-        preds2 = []
 
         for idx, data in enumerate(prog_bar):
             images, targets = data
@@ -99,7 +75,6 @@ class EvalObjectDetectionModel:
             for i in range(len(images)):
                 true_dict = dict()
                 preds_dict = dict()
-                preds2_dict = dict()
 
                 true_dict['boxes'] = targets[i]['boxes'].detach().cpu()
                 true_dict['labels'] = targets[i]['labels'].detach().cpu()
@@ -108,38 +83,10 @@ class EvalObjectDetectionModel:
                 preds_dict['scores'] = outputs[i]['scores'].detach().cpu()
                 preds_dict['labels'] = outputs[i]['labels'].detach().cpu()
 
-                if i < len(outputs) and len(outputs[i]['labels']) > 0:
-                    preds2_dict['labels'] = torch.tensor([outputs[i]['labels'][0].item()])
-                else:
-                    preds2_dict['labels'] = torch.tensor([])
-
                 preds.append(preds_dict)
-                preds2.append(preds2_dict)
                 gt.append(true_dict)
 
-            if idx == 45:
-                break
-
         self.mean_avg_precision(preds, gt)
-
-        print(len(gt), len(preds2))
-        # Create target tensor as before
-        target = torch.tensor([int(item['labels']) for item in gt])
-
-        # Create predictions tensor and assign a label of 0 to items with empty 'labels'
-        predictions = []
-        for item in preds2:
-            if item['labels'].numel() > 0:
-                predictions.append(item['labels'])
-            else:
-                predictions.append(torch.tensor([0]))
-
-        # Concatenate the tensors in the predictions list
-        predictions = torch.cat(predictions)
-
-        self.precision(target, predictions)
-        self.recall(target, predictions)
-        self.f1_score(target, predictions)
 
 
 if __name__ == '__main__':
