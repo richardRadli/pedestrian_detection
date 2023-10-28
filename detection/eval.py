@@ -52,7 +52,8 @@ class EvalObjectDetectionModel:
         checkpoint = torch.load(latest_model_file, map_location=self.device)
         self.model.load_state_dict(checkpoint)
         self.model.to(self.device)
-
+        # latest_model_file = "C:/Users/ricsi/Desktop/pruned_model.pth"
+        # self.model = torch.load(latest_model_file, map_location=self.device)
         self.overall_precision = None
         self.overall_recall = None
         self.mAP = None
@@ -135,6 +136,8 @@ class EvalObjectDetectionModel:
 
             if idx == 10:
                 break
+            # for img, pred in zip(images, preds):
+            #     self.plot_detected_bboxes([img], [pred], detection_threshold=0.1)
 
         self.overall_precision = all_true_positives / (all_true_positives + all_false_positives)
         self.overall_recall = all_true_positives / all_actual_positives
@@ -152,50 +155,49 @@ class EvalObjectDetectionModel:
 
         return images, outputs
 
-    def plot_detected_bboxes(self, images, outputs, detection_threshold: float = 0.5):
-        tensor_image = images[0]
+    def plot_detected_bboxes(self, images, outputs, detection_threshold: float = 0.1):
+        for image, output in zip(images, outputs):
+            tensor_image = image
 
-        # Convert the tensor image to a NumPy array
-        numpy_image = tensor_image.cpu().numpy()
+            # Convert the tensor image to a NumPy array
+            numpy_image = tensor_image.cpu().numpy()
 
-        # Rearrange the color channels from RGB to BGR order
-        bgr_image = numpy_image[[2, 1, 0], :, :]
+            # Rearrange the color channels from RGB to BGR order
+            bgr_image = numpy_image[[2, 1, 0], :, :]
 
-        # Convert the NumPy array to a BGR image
-        bgr_image = np.transpose(bgr_image, (1, 2, 0))
-        bgr_image *= 255.0
-        bgr_image = bgr_image.astype(np.uint8)
+            # Convert the NumPy array to a BGR image
+            bgr_image = np.transpose(bgr_image, (1, 2, 0))
+            bgr_image *= 255.0
+            bgr_image = bgr_image.astype(np.uint8)
 
-        # Create a copy of the BGR image to draw on
-        image_with_boxes = bgr_image.copy()
+            # Create a copy of the BGR image to draw on
+            image_with_boxes = bgr_image.copy()
 
-        outputs = [{k: v.to('cpu') for k, v in t.items()} for t in outputs]
+            output = {k: v.to('cpu') for k, v in output.items()}
 
-        if len(outputs[0]['boxes']) != 0:
-            boxes = outputs[0]['boxes'].data.numpy()
-            scores = outputs[0]['scores'].data.numpy()
-            print(str(scores[0]), type(str(scores[0])))
-            boxes = boxes[scores >= detection_threshold].astype(np.int32)
-            draw_boxes = boxes.copy()
+            if len(output['boxes']) != 0:
+                boxes = output['boxes'].data.numpy()
+                scores = output['scores'].data.numpy()
+                boxes = boxes[scores >= detection_threshold].astype(np.int32)
+                draw_boxes = boxes.copy()
 
-            pred_classes = [self.dataset_config.get("classes")[i] for i in outputs[0]['labels'].cpu().numpy()]
+                pred_classes = [self.dataset_config.get("classes")[i] for i in output['labels'].cpu().numpy()]
 
-            for j, box in enumerate(draw_boxes):
-                cv2.rectangle(img=image_with_boxes,
-                              pt1=(int(box[0]), int(box[1])),
-                              pt2=(int(box[2]), int(box[3])),
-                              color=(0, 0, 255),
-                              )
-                cv2.putText(image_with_boxes, (pred_classes[j] + " " + str(scores[0])),
-                            (int(box[0]), int(box[1] - 5)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255),
-                            2, lineType=cv2.LINE_AA)
+                for j, box in enumerate(draw_boxes):
+                    cv2.rectangle(img=image_with_boxes,
+                                  pt1=(int(box[0]), int(box[1])),
+                                  pt2=(int(box[2]), int(box[3])),
+                                  color=(0, 0, 255),
+                                  )
+                    cv2.putText(image_with_boxes, (pred_classes[j] + " " + str(scores[j])),
+                                (int(box[0]), int(box[1] - 5)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255),
+                                2, lineType=cv2.LINE_AA)
 
-                cv2.imshow('Prediction', image_with_boxes)
+                cv2.imshow('pred', image_with_boxes)
                 cv2.waitKey()
 
 
 if __name__ == '__main__':
     evaluation = EvalObjectDetectionModel()
     images, outputs=evaluation.calculate_metrics()
-    evaluation.plot_detected_bboxes(images, outputs)
