@@ -2,7 +2,8 @@ import colorama
 import cv2
 import logging
 import pandas as pd
-import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import os
 import torch
 import typing
@@ -52,11 +53,13 @@ class EvalObjectDetectionModel:
         checkpoint = torch.load(latest_model_file, map_location=self.device)
         self.model.load_state_dict(checkpoint)
         self.model.to(self.device)
-        # latest_model_file = "C:/Users/ricsi/Desktop/pruned_model.pth"
-        # self.model = torch.load(latest_model_file, map_location=self.device)
+
         self.overall_precision = None
         self.overall_recall = None
         self.mAP = None
+
+        self.plot_save_path = os.path.join(self.network_config.get("plotting_folder"), self.timestamp)
+        os.makedirs(self.plot_save_path, exist_ok=True)
 
     @staticmethod
     def mean_avg_precision(predictions: typing.List, gt: typing.List):
@@ -92,7 +95,7 @@ class EvalObjectDetectionModel:
         gt = []
         preds = []
 
-        for idx, data in enumerate(prog_bar):
+        for batch_idx, data in enumerate(prog_bar):
             images, targets = data
             images = list(image.to(self.device) for image in images)
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
@@ -134,10 +137,7 @@ class EvalObjectDetectionModel:
                 preds.append(preds_dict)
                 gt.append(true_dict)
 
-            if idx == 10:
-                break
-            # for img, pred in zip(images, preds):
-            #     self.plot_detected_bboxes([img], [pred], detection_threshold=0.1)
+                self.plot_predicted_boxes(images, outputs, batch_idx, self.plot_save_path)
 
         self.overall_precision = all_true_positives / (all_true_positives + all_false_positives)
         self.overall_recall = all_true_positives / all_actual_positives
@@ -153,51 +153,33 @@ class EvalObjectDetectionModel:
 
         self.save_metrics_to_txt()
 
-        return images, outputs
+    @staticmethod
+    def plot_predicted_boxes(images, outputs, idx, save_path=None):
+        for i, (image, output) in enumerate(zip(images, outputs)):
+            img = image.cpu().permute(1, 2, 0).numpy()
+            # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    def plot_detected_bboxes(self, images, outputs, detection_threshold: float = 0.1):
-        for image, output in zip(images, outputs):
-            tensor_image = image
+            fig, ax = plt.subplots(1)
+            ax.imshow(img)
 
-            # Convert the tensor image to a NumPy array
-            numpy_image = tensor_image.cpu().numpy()
+            for box, score, label in zip(output['boxes'].cpu(), output['scores'].cpu(), output['labels'].cpu()):
+                x, y, x_max, y_max = box
+                rect = patches.Rectangle((x, y), x_max - x, y_max - y, linewidth=1, edgecolor='r', facecolor='none')
+                ax.add_patch(rect)
+                ax.annotate(f'Label: {label}, Score: {score:.2f}', (x, y), color='r')
 
-            # Rearrange the color channels from RGB to BGR order
-            bgr_image = numpy_image[[2, 1, 0], :, :]
+            plt.axis('off')
+            plt.title(f'Predicted Bounding Boxes - Image {idx}_{i}')
 
-            # Convert the NumPy array to a BGR image
-            bgr_image = np.transpose(bgr_image, (1, 2, 0))
-            bgr_image *= 255.0
-            bgr_image = bgr_image.astype(np.uint8)
-
-            # Create a copy of the BGR image to draw on
-            image_with_boxes = bgr_image.copy()
-
-            output = {k: v.to('cpu') for k, v in output.items()}
-
-            if len(output['boxes']) != 0:
-                boxes = output['boxes'].data.numpy()
-                scores = output['scores'].data.numpy()
-                boxes = boxes[scores >= detection_threshold].astype(np.int32)
-                draw_boxes = boxes.copy()
-
-                pred_classes = [self.dataset_config.get("classes")[i] for i in output['labels'].cpu().numpy()]
-
-                for j, box in enumerate(draw_boxes):
-                    cv2.rectangle(img=image_with_boxes,
-                                  pt1=(int(box[0]), int(box[1])),
-                                  pt2=(int(box[2]), int(box[3])),
-                                  color=(0, 0, 255),
-                                  )
-                    cv2.putText(image_with_boxes, (pred_classes[j] + " " + str(scores[j])),
-                                (int(box[0]), int(box[1] - 5)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255),
-                                2, lineType=cv2.LINE_AA)
-
-                cv2.imshow('pred', image_with_boxes)
-                cv2.waitKey()
+            if save_path:
+                plt.savefig(f'{save_path}/image_{idx}_{i}.png')
+            else:
+                plt.show()
 
 
 if __name__ == '__main__':
-    evaluation = EvalObjectDetectionModel()
-    images, outputs=evaluation.calculate_metrics()
+    try:
+        evaluation = EvalObjectDetectionModel()
+        evaluation.calculate_metrics()
+    except KeyboardInterrupt as kie:
+        logging.error(f"Exception happened: {kie}")

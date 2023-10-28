@@ -67,14 +67,12 @@ class TrainObjectDetectionModel:
 
         # Tensorboard
         tensorboard_log_dir = os.path.join(network_config.get("logs_folder"), self.timestamp)
-        if not os.path.exists(tensorboard_log_dir):
-            os.makedirs(tensorboard_log_dir)
+        os.makedirs(tensorboard_log_dir, exist_ok=True)
         self.writer = SummaryWriter(log_dir=tensorboard_log_dir)
 
         # Create save directory
         self.save_path = os.path.join(network_config.get('weights_folder'), self.timestamp)
-        if not os.path.exists(self.save_path):
-            os.makedirs(self.save_path)
+        os.makedirs(self.save_path, exist_ok=True)
 
     # --------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------T R A I N -------------------------------------------------- #
