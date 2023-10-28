@@ -1,10 +1,11 @@
 import colorama
-import cv2
+import gc
 import logging
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import os
+import time
 import torch
 import typing
 
@@ -84,7 +85,7 @@ class EvalObjectDetectionModel:
         results_df.to_csv(os.path.join(self.network_config['prediction_folder'],
                                        self.timestamp + "_metrics_prediction.txt"), sep='\t', index=True)
 
-    def calculate_metrics(self, iou_threshold=0.5):
+    def calculate_metrics(self, iou_threshold=0.5, plot_results=True):
         self.model.eval()
 
         # Initialize tqdm progress bar.
@@ -101,7 +102,9 @@ class EvalObjectDetectionModel:
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
 
             with torch.no_grad():
+                start = time.time()
                 outputs = self.model(images, targets)
+                print(f" Prediction time: {round((time.time() - start) * 1000, 2)} ms")
 
             for i in range(len(images)):
                 true_boxes = targets[i]['boxes'].cpu()
@@ -137,7 +140,8 @@ class EvalObjectDetectionModel:
                 preds.append(preds_dict)
                 gt.append(true_dict)
 
-                self.plot_predicted_boxes(images, outputs, batch_idx, self.plot_save_path)
+                if plot_results:
+                    self.plot_predicted_boxes(images, targets, outputs, batch_idx, self.plot_save_path)
 
         self.overall_precision = all_true_positives / (all_true_positives + all_false_positives)
         self.overall_recall = all_true_positives / all_actual_positives
@@ -154,13 +158,18 @@ class EvalObjectDetectionModel:
         self.save_metrics_to_txt()
 
     @staticmethod
-    def plot_predicted_boxes(images, outputs, idx, save_path=None):
-        for i, (image, output) in enumerate(zip(images, outputs)):
+    def plot_predicted_boxes(images, targets, outputs, idx, save_path=None):
+        for i, (image, output, target) in enumerate(zip(images, outputs, targets)):
             img = image.cpu().permute(1, 2, 0).numpy()
-            # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
             fig, ax = plt.subplots(1)
             ax.imshow(img)
+
+            for box, label in zip(target['boxes'].cpu(), output['labels'].cpu()):
+                x, y, x_max, y_max = box
+                rect = patches.Rectangle((x, y), x_max - x, y_max - y, linewidth=1, edgecolor='g', facecolor='none')
+                ax.add_patch(rect)
+                ax.annotate(f'Label: {label}', (x, y), color='r')
 
             for box, score, label in zip(output['boxes'].cpu(), output['scores'].cpu(), output['labels'].cpu()):
                 x, y, x_max, y_max = box
@@ -173,6 +182,8 @@ class EvalObjectDetectionModel:
 
             if save_path:
                 plt.savefig(f'{save_path}/image_{idx}_{i}.png')
+                plt.close("all")
+                gc.collect()
             else:
                 plt.show()
 
