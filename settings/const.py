@@ -68,6 +68,9 @@ class Images(_Const):
         "plotting_faster_rcnn":
             "images/prediction/faster_rcnn",
 
+        "plotting_faster_rcnn_sa":
+            "images/prediction/faster_rcnn_sa",
+
         "plotting_ssd":
             "images/prediction/ssd",
     }
@@ -98,6 +101,13 @@ class Data(_Const):
             "data/predictions/faster_rcnn",
         "logs_faster_rcnn":
             "data/logs/faster_rcnn",
+
+        "weights_faster_rcnn_sa":
+            "data/weights/faster_rcnn_sa",
+        "prediction_txt_faster_rcnn_sa":
+            "data/predictions/faster_rcnn_sa",
+        "logs_faster_rcnn_sa":
+            "data/logs/faster_rcnn_sa",
 
         "weights_ssd":
             "data/weights/ssd",

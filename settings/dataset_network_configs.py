@@ -58,6 +58,16 @@ def network_configs(cfg) -> Dict:
             'plotting_folder':
                 IMAGES_PATH.get_data_path("plotting_faster_rcnn")
         },
+        'Faster_R_CNN_SA': {
+            'logs_folder':
+                DATA_PATH.get_data_path("logs_faster_rcnn_sa"),
+            'weights_folder':
+                DATA_PATH.get_data_path("weights_faster_rcnn_sa"),
+            'prediction_folder':
+                DATA_PATH.get_data_path("prediction_txt_faster_rcnn_sa"),
+            'plotting_folder':
+                IMAGES_PATH.get_data_path("plotting_faster_rcnn_sa")
+        },
         'SSD': {
             'logs_folder':
                 DATA_PATH.get_data_path("logs_ssd"),

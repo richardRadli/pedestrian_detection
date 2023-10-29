@@ -6,7 +6,8 @@ class ConfigObjectDetection:
         self.opt = None
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument("--dataset_type", type=str, default="caltech", help="caltech | ecp")
-        self.parser.add_argument("--type_of_net", type=str, default="Faster_R_CNN", help="Faster_R_CNN | SSD")
+        self.parser.add_argument("--type_of_net", type=str, default="Faster_R_CNN_SA",
+                                 help="Faster_R_CNN | Faster_R_CNN_SA | SSD")
         self.parser.add_argument('--batch_size', type=int, default=4)
         self.parser.add_argument('--num_epochs', type=int, default=100)
         self.parser.add_argument('--learning_rate', type=float, default=2e-4) # 0.001

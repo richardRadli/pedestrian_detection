@@ -3,6 +3,7 @@ import torch
 from abc import ABC, abstractmethod
 
 from detection_models.faster_r_cnn_model import FasterRCNN
+from detection_models.faster_r_cnn_self_attention import FasterRCNNSelfAttention
 from detection_models.ssd_model import SSDModel
 
 
@@ -19,6 +20,14 @@ class BaseNetwork(ABC):
 class FasterRCNNWrapper(BaseNetwork):
     def __init__(self, dataset_cfg):
         self.model = FasterRCNN(dataset_cfg.get("num_classes"))
+
+    def forward(self, x, y):
+        return self.model(x, y)
+
+
+class FasterRCNNSelfAttentionWrapper(BaseNetwork):
+    def __init__(self, dataset_cfg):
+        self.model = FasterRCNNSelfAttention(dataset_cfg.get("num_classes"))
 
     def forward(self, x, y):
         return self.model(x, y)
@@ -42,6 +51,8 @@ class NetworkFactory:
     def create_network(network_type, dataset_cfg, device=None):
         if network_type == "Faster_R_CNN":
             model = FasterRCNNWrapper(dataset_cfg).model
+        elif network_type == "Faster_R_CNN_SA":
+            model = FasterRCNNSelfAttentionWrapper(dataset_cfg).model
         elif network_type == "SSD":
             model = SSDWrapper(dataset_cfg).model
         else:
