@@ -4,6 +4,7 @@ import torchvision
 
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
+
 class SelfAttention(nn.Module):
     def __init__(self, input_dim, attention_dim):
         super(SelfAttention, self).__init__()
@@ -20,6 +21,7 @@ class SelfAttention(nn.Module):
         attention_weights = torch.softmax(scores, dim=-1)
         attended_values = torch.matmul(attention_weights, values)
         return attended_values
+
 
 class FasterRCNNSelfAttention(nn.Module):
     def __init__(self, num_classes, attention_dim=1024):
@@ -40,6 +42,12 @@ class FasterRCNNSelfAttention(nn.Module):
         # Define a new head for the detector with the required number of classes
         model.roi_heads.box_predictor = FastRCNNPredictor(in_features, self.num_classes)
 
+        # Extend the TwoMLPHead with SelfAttention
+        model.roi_heads.box_head.fc6 = nn.Sequential(
+            model.roi_heads.box_head.fc6,
+            SelfAttention(in_features, self.attention_dim)  # Add SelfAttention layer
+        )
+
         return model
 
     def forward(self, x, y):
@@ -47,7 +55,3 @@ class FasterRCNNSelfAttention(nn.Module):
         x = self.model(x, y)
 
         return x
-
-#
-# frcnn = FasterRCNNSelfAttention(2, 1024)
-# print(frcnn) # 12544
