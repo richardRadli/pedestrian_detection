@@ -77,7 +77,7 @@ def network_configs(cfg) -> Dict:
                 DATA_PATH.get_data_path("prediction_txt_ssd"),
             'plotting_folder':
                 IMAGES_PATH.get_data_path("plotting_ssd"),
-        },
+        }
     }
 
     if network_type not in detection_network_configs:

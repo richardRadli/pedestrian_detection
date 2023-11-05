@@ -72,7 +72,7 @@ class Images(_Const):
             "images/prediction/faster_rcnn_sa",
 
         "plotting_ssd":
-            "images/prediction/ssd",
+            "images/prediction/ssd"
     }
 
     # ------------------------------------------------------------------------------------------------------------------

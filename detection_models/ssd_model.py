@@ -16,8 +16,8 @@ class SSDModel(nn.Module):
         return self.model(x, y)
 
     def create_model(self):
-        model_backbone = torchvision.models.resnet34(
-            weights=torchvision.models.ResNet34_Weights.DEFAULT
+        model_backbone = torchvision.models.resnet50(
+            weights="DEFAULT"
         )
         conv1 = model_backbone.conv1
         bn1 = model_backbone.bn1
@@ -31,7 +31,7 @@ class SSDModel(nn.Module):
             conv1, bn1, relu, max_pool,
             layer1, layer2, layer3, layer4
         )
-        out_channels = [512, 512, 512, 512, 512, 512]
+        out_channels = [2048, 2048, 2048, 2048, 2048, 2048]
         anchor_generator = DefaultBoxGenerator(
             [[2], [2, 3], [2, 3], [2, 3], [2], [2]],
         )
