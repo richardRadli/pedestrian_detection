@@ -18,7 +18,8 @@ from dataloader import CaltechDatasetLoader
 from detection_models.network_selectory import NetworkFactory
 from settings.config import ConfigObjectDetection
 from settings.dataset_network_configs import dataset_configs, network_configs
-from utils.utils import collate_fn, create_timestamp, get_valid_transform, find_latest_file_in_latest_directory
+from utils.utils import (calculate_average, collate_fn, create_timestamp, get_valid_transform,
+                         find_latest_file_in_latest_directory)
 
 
 class EvalObjectDetectionModel:
@@ -85,7 +86,7 @@ class EvalObjectDetectionModel:
         results_df.to_csv(os.path.join(self.network_config['prediction_folder'],
                                        self.timestamp + "_metrics_prediction.txt"), sep='\t', index=True)
 
-    def calculate_metrics(self, iou_threshold=0.5, plot_results=True):
+    def calculate_metrics(self, iou_threshold=0.5, confidence_threshold=0.5, plot_results=False):
         self.model.eval()
 
         # Initialize tqdm progress bar.
@@ -95,6 +96,7 @@ class EvalObjectDetectionModel:
         all_actual_positives = 0
         gt = []
         preds = []
+        elapsed_time = []
 
         for batch_idx, data in enumerate(prog_bar):
             images, targets = data
@@ -104,21 +106,32 @@ class EvalObjectDetectionModel:
             with torch.no_grad():
                 start = time.time()
                 outputs = self.model(images, targets)
-                print(f" Prediction time: {round((time.time() - start) * 1000, 2)} ms")
+                end = time.time() - start
+                elapsed_time.append(end)
 
             for i in range(len(images)):
                 true_boxes = targets[i]['boxes'].cpu()
                 pred_boxes = outputs[i]['boxes'].cpu()
+                pred_scores = outputs[i]['scores'].cpu()
                 iou_matrix = box_iou(true_boxes, pred_boxes)
+
+                # Apply confidence threshold to filter predictions
+                confident_preds = pred_scores >= confidence_threshold
+                pred_boxes = pred_boxes[confident_preds]
+                iou_matrix = iou_matrix[:, confident_preds]
 
                 # Calculate true positives, false positives, and actual positives for each image
                 image_true_positives = 0
                 image_actual_positives = len(true_boxes)
 
-                for _, _ in zip(true_boxes, pred_boxes):
+                for _ in range(len(true_boxes)):
+                    if iou_matrix.numel() == 0:  # Check if the iou_matrix is empty
+                        break
                     iou = iou_matrix.max(dim=1)[0]  # Maximum IoU for each true box
-                    if iou.max() >= iou_threshold:
+                    max_iou_value, max_iou_index = iou.max(dim=0)
+                    if max_iou_value >= iou_threshold:
                         image_true_positives += 1
+                        iou_matrix[max_iou_index, :] = -1  # Mark the used prediction as invalid
 
                 image_false_positives = len(pred_boxes) - image_true_positives
 
@@ -133,15 +146,20 @@ class EvalObjectDetectionModel:
                 true_dict['boxes'] = targets[i]['boxes'].detach().cpu()
                 true_dict['labels'] = targets[i]['labels'].detach().cpu()
 
-                preds_dict['boxes'] = outputs[i]['boxes'].detach().cpu()
-                preds_dict['scores'] = outputs[i]['scores'].detach().cpu()
-                preds_dict['labels'] = outputs[i]['labels'].detach().cpu()
+                preds_dict['boxes'] = pred_boxes
+                preds_dict['scores'] = pred_scores[confident_preds]
+                preds_dict['labels'] = outputs[i]['labels'][confident_preds].cpu()
 
                 preds.append(preds_dict)
                 gt.append(true_dict)
 
                 if plot_results:
-                    self.plot_predicted_boxes(images, targets, outputs, batch_idx, self.plot_save_path)
+                    iou_threshold_met = (image_true_positives / image_actual_positives) >= iou_threshold
+                    if iou_threshold_met:
+                        self.plot_predicted_boxes(images, targets, outputs, batch_idx, self.plot_save_path)
+
+        avg_time = calculate_average(elapsed_time)
+        logging.info(f"Prediction time: {round(avg_time * 1000, 2)} ms")
 
         self.overall_precision = all_true_positives / (all_true_positives + all_false_positives)
         self.overall_recall = all_true_positives / all_actual_positives

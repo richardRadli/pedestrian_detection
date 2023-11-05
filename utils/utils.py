@@ -121,6 +121,12 @@ def create_timestamp() -> str:
     return datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
 
+def calculate_average(numbers):
+    total = sum(numbers)
+    average = total / len(numbers)
+    return average
+
+
 def find_latest_file_in_latest_directory(path: str) -> str:
     """
     Finds the latest file in the latest directory within the given path.
