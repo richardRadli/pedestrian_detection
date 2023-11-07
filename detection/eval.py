@@ -159,7 +159,7 @@ class EvalObjectDetectionModel:
                         self.plot_predicted_boxes(images, targets, outputs, batch_idx, self.plot_save_path)
 
         avg_time = calculate_average(elapsed_time)
-        logging.info(f"Prediction time: {round(avg_time * 1000, 2)} ms")
+        logging.info(f"Average prediction time: {round(avg_time * 1000, 2)} ms")
 
         self.overall_precision = all_true_positives / (all_true_positives + all_false_positives)
         self.overall_recall = all_true_positives / all_actual_positives
@@ -167,6 +167,7 @@ class EvalObjectDetectionModel:
         logging.info(f"Precision: {self.overall_precision}, Recall: {self.overall_recall}")
 
         # Calculate mAP using Torchmetrics
+        logging.info("Calculating mAP")
         metric = MeanAveragePrecision()
         metric.update(preds, gt)
         self.mAP = metric.compute()
