@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn.utils.prune as prune
 
@@ -19,6 +20,23 @@ def quantization(model):
     )
 
 
+def print_file_size(original, pruned):
+    size_original = os.path.getsize(original)
+    size_pruned = os.path.getsize(pruned)
+    print(f"The size of the original file is {size_original / 10**6} bytes.")
+    print(f"The size of the pruned file is {size_pruned / 10**6} bytes.")
+
+    change = size_pruned - size_original
+    percentage_change = (change / size_original) * 100
+
+    if change > 0:
+        print(f"The size of the pruned file increased by {percentage_change:.2f}% compared to the original file.")
+    elif change < 0:
+        print(f"The size of the pruned file decreased by {percentage_change:.2f}% compared to the original file.")
+    else:
+        print("No change has happened")
+
+
 def main():
     cfg = ConfigObjectDetection().parse()
 
@@ -34,7 +52,7 @@ def main():
     model.load_state_dict(checkpoint)
     model.to(device)
 
-    desired_sparsity = 0.5  # 50% sparsity
+    desired_sparsity = 0.2 # 50% sparsity
     modules_to_prune = [
         model.model.backbone.body.conv1,
         model.model.backbone.body.layer1[0].conv1
@@ -43,15 +61,17 @@ def main():
     for module in modules_to_prune:
         prune_certain_layers(module, desired_sparsity)
 
-    quantized_model = quantization(model)
+    # quantized_model = quantization(model)
 
     pruned_model_checkpoint = "C:/Users/ricsi/Desktop/pruned_model.pth"
-    torch.save(quantized_model, pruned_model_checkpoint)
+    torch.save(model, pruned_model_checkpoint)
 
-    # Load the pruned model checkpoint
-    checkpoint = torch.load(pruned_model_checkpoint, map_location=device)
+    print_file_size(latest_model_file, pruned_model_checkpoint)
 
-    print(checkpoint)
+    # # Load the pruned model checkpoint
+    # checkpoint = torch.load(pruned_model_checkpoint, map_location=device)
+    #
+    # print(checkpoint)
 
 
 if __name__ == "__main__":
