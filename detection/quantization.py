@@ -1,24 +1,22 @@
 import os
 import torch
-import torch.nn.utils.prune as prune
 
 from detection_models.network_selectory import NetworkFactory
 from settings.config import ConfigObjectDetection
 from settings.dataset_network_configs import dataset_configs, network_configs
 from utils.utils import find_latest_file_in_latest_directory
+import torch.quantization
 
 
-def prune_certain_layers(module, desired_sparsity: float = 0.5):
-    prune.ln_structured(
-        module, name="weight", amount=desired_sparsity, n=2, dim=0
-    )
+class QuantizedFasterRCNN(torch.nn.Module):
+    def __init__(self, model):
+        super(QuantizedFasterRCNN, self).__init__()
+        self.model = torch.quantization.quantize_dynamic(
+            model, {torch.nn.Linear}, dtype=torch.qint8
+        )
 
-
-def save_quantized_model(model, pruned_model_checkpoint):
-    quantized_model = torch.quantization.quantize_dynamic(
-        model, qconfig_spec={torch.nn.Linear}, dtype=torch.qint8
-    )
-    torch.save(quantized_model.state_dict(), pruned_model_checkpoint)
+    def forward(self, x):
+        return self.model(x)
 
 
 def print_file_size(original, pruned):
@@ -54,12 +52,12 @@ def main():
     model.load_state_dict(checkpoint)
     model.to(device)
 
-    save_quantized_model(model, pruned_model_checkpoint)
+    total_parameters = sum(p.numel() for p in model.parameters())
+    print(f"Total number of parameters in the quantized Faster R-CNN model: {total_parameters}")
 
-    print_file_size(latest_model_file, pruned_model_checkpoint)
+    quantized_model = QuantizedFasterRCNN(model)
 
-    quantized_model = NetworkFactory().create_network(cfg.type_of_net, dataset_config, device=device)
-    quantized_model.load_state_dict(torch.load(pruned_model_checkpoint))
+    torch.save(quantized_model.state_dict(), pruned_model_checkpoint)
 
 
 if __name__ == "__main__":

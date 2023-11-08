@@ -6,7 +6,7 @@ class ConfigObjectDetection:
         self.opt = None
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument("--dataset_type", type=str, default="caltech")
-        self.parser.add_argument("--type_of_net", type=str, default="Faster_R_CNN_SA",
+        self.parser.add_argument("--type_of_net", type=str, default="Faster_R_CNN",
                                  help="Faster_R_CNN | Faster_R_CNN_SA | SSD")
         self.parser.add_argument('--batch_size', type=int, default=4)
         self.parser.add_argument('--num_epochs', type=int, default=100)  # 40 for FRCNN
