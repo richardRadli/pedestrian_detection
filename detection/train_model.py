@@ -4,6 +4,7 @@ import numpy as np
 import os
 import torch
 
+from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -65,6 +66,11 @@ class TrainObjectDetectionModel:
                             momentum=self.cfg.momentum,
                             weight_decay=self.cfg.weight_decay)
 
+        # LR scheduler
+        self.scheduler = StepLR(optimizer=self.optimizer,
+                                step_size=self.cfg.step_size,
+                                gamma=self.cfg.gamma)
+
         # Tensorboard
         tensorboard_log_dir = os.path.join(network_config.get("logs_folder"), self.timestamp)
         os.makedirs(tensorboard_log_dir, exist_ok=True)
@@ -116,6 +122,9 @@ class TrainObjectDetectionModel:
                     losses = sum(loss for loss in loss_dict.values())
 
                     valid_losses.append(losses.item())
+
+            # Decay the learning rate
+            self.scheduler.step()
 
             train_loss = np.average(train_losses)
             valid_loss = np.average(valid_losses)
