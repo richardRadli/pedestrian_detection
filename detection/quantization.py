@@ -15,8 +15,8 @@ class QuantizedFasterRCNN(torch.nn.Module):
             model, {torch.nn.Linear}, dtype=torch.qint8
         )
 
-    def forward(self, x):
-        return self.model(x)
+    def forward(self, x, y):
+        return self.model(x, y)
 
 
 def print_file_size(original, pruned):
@@ -50,7 +50,7 @@ def main():
     os.makedirs(quantization_dir, exist_ok=True)
     quantized_model_checkpoint = os.path.join(quantization_dir, os.path.basename(latest_model_file))
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
     model = NetworkFactory().create_network(cfg.type_of_net, dataset_config, device=device)
     checkpoint = torch.load(latest_model_file, map_location=device)
     model.load_state_dict(checkpoint)

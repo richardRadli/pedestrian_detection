@@ -21,6 +21,7 @@ from settings.config import ConfigObjectDetection
 from settings.dataset_network_configs import dataset_configs, network_configs
 from utils.utils import (calculate_average, collate_fn, create_timestamp, get_valid_transform,
                          find_latest_file_in_latest_directory)
+from quantization import QuantizedFasterRCNN
 
 
 class EvalObjectDetectionModel:
@@ -59,6 +60,10 @@ class EvalObjectDetectionModel:
         if self.cfg.prune:
             self.model.apply(self.custom_pruning)
             logging.info(f"Model is pruned: {prune.is_pruned(self.model)}, with sparsity of {self.cfg.sparsity}")
+
+        # self.model = QuantizedFasterRCNN(model)  # model is a Faster R-CNN model
+        # self.model.load_state_dict(torch.load("D:\storage_for_ped_det/data/weights/faster_rcnn_quantized/2023-11-09_15-12-01/epoch_29.pt"))
+        # self.model.to(self.device)
 
         self.overall_precision = None
         self.overall_recall = None
