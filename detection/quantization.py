@@ -31,7 +31,7 @@ def print_file_size(original, pruned):
     if change > 0:
         print(f"The size of the pruned file increased by {percentage_change:.4f}% compared to the original file.")
     elif change < 0:
-        print(f"The size of the pruned file decreased by {percentage_change:.4f}% compared to the original file.")
+        print(f"The size of the pruned file decreased by {abs(percentage_change):.4f}% compared to the original file.")
     else:
         print("No change has happened")
 
@@ -63,10 +63,6 @@ def main():
     torch.save(quantized_model.state_dict(), quantized_model_checkpoint)
 
     print_file_size(latest_model_file, quantized_model_checkpoint)
-
-    # Loading procedure
-    a = QuantizedFasterRCNN(model)  # model is a Faster R-CNN model
-    a.load_state_dict(torch.load(quantized_model_checkpoint))
 
 
 if __name__ == "__main__":

@@ -18,6 +18,8 @@ class ConfigObjectDetection:
         self.parser.add_argument('--step_size', type=int, default=5,
                                  help="Number of epochs after which to decay the learning rate")
         self.parser.add_argument('--gamma', type=float, default=0.1, help="Factor by which to decay the learning rate")
+        self.parser.add_argument('--quantized_model', type=bool, default=False)
+
 
     def parse(self):
         self.opt = self.parser.parse_args()

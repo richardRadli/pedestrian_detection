@@ -43,27 +43,33 @@ class EvalObjectDetectionModel:
 
         self.test_loader = DataLoader(
             test_dataset,
-            batch_size=self.cfg.batch_size,
-            shuffle=True,
+            batch_size=1,#self.cfg.batch_size,
+            shuffle=False,
             num_workers=0,
             collate_fn=collate_fn
         )
 
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = NetworkFactory().create_network(self.cfg.type_of_net, self.dataset_config, device=self.device)
+        if self.cfg.quantized_model:
+            self.device = "cpu"
+            model = NetworkFactory().create_network(self.cfg.type_of_net, self.dataset_config, device=self.device)
+            self.model = QuantizedFasterRCNN(model)
+            latest_model_file = (
+                find_latest_file_in_latest_directory(self.network_config.get("quantized_weights_folder")))
+            self.model.load_state_dict(torch.load(latest_model_file))
+            self.model.to(self.device)
 
-        latest_model_file = find_latest_file_in_latest_directory(self.network_config.get("weights_folder"))
-        checkpoint = torch.load(latest_model_file, map_location=self.device)
-        self.model.load_state_dict(checkpoint)
-        self.model.to(self.device)
+        if not self.cfg.quantized_model:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.model = NetworkFactory().create_network(self.cfg.type_of_net, self.dataset_config, device=self.device)
+
+            latest_model_file = find_latest_file_in_latest_directory(self.network_config.get("weights_folder"))
+            checkpoint = torch.load(latest_model_file, map_location=self.device)
+            self.model.load_state_dict(checkpoint)
+            self.model.to(self.device)
 
         if self.cfg.prune:
             self.model.apply(self.custom_pruning)
             logging.info(f"Model is pruned: {prune.is_pruned(self.model)}, with sparsity of {self.cfg.sparsity}")
-
-        # self.model = QuantizedFasterRCNN(model)  # model is a Faster R-CNN model
-        # self.model.load_state_dict(torch.load("D:\storage_for_ped_det/data/weights/faster_rcnn_quantized/2023-11-09_15-12-01/epoch_29.pt"))
-        # self.model.to(self.device)
 
         self.overall_precision = None
         self.overall_recall = None
@@ -225,6 +231,10 @@ class EvalObjectDetectionModel:
 if __name__ == '__main__':
     try:
         evaluation = EvalObjectDetectionModel()
-        evaluation.calculate_metrics()
+        evaluation.calculate_metrics(
+            iou_threshold=0.5,
+            confidence_threshold=0.5,
+            plot_results=True
+        )
     except KeyboardInterrupt as kie:
         logging.error(f"Exception happened: {kie}")
