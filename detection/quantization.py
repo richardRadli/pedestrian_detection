@@ -4,7 +4,7 @@ import torch
 from detection_models.network_selectory import NetworkFactory
 from settings.config import ConfigObjectDetection
 from settings.dataset_network_configs import dataset_configs, network_configs
-from utils.utils import find_latest_file_in_latest_directory
+from utils.utils import find_latest_file_in_latest_directory, create_timestamp
 import torch.quantization
 
 
@@ -37,7 +37,7 @@ def print_file_size(original, pruned):
 
 
 def main():
-    pruned_model_checkpoint = "C:/Users/ricsi/Desktop/pruned_model.pt"
+    timestamp = create_timestamp()
 
     cfg = ConfigObjectDetection().parse()
 
@@ -45,6 +45,10 @@ def main():
     network_config = network_configs(cfg)
 
     latest_model_file = find_latest_file_in_latest_directory(network_config.get("weights_folder"))
+
+    quantization_dir = os.path.join(network_config.get("quantized_weights_folder"), timestamp)
+    os.makedirs(quantization_dir, exist_ok=True)
+    quantized_model_checkpoint = os.path.join(quantization_dir, os.path.basename(latest_model_file))
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = NetworkFactory().create_network(cfg.type_of_net, dataset_config, device=device)
@@ -56,8 +60,13 @@ def main():
     print(f"Total number of parameters in the quantized Faster R-CNN model: {total_parameters}")
 
     quantized_model = QuantizedFasterRCNN(model)
+    torch.save(quantized_model.state_dict(), quantized_model_checkpoint)
 
-    torch.save(quantized_model.state_dict(), pruned_model_checkpoint)
+    print_file_size(latest_model_file, quantized_model_checkpoint)
+
+    # Loading procedure
+    a = QuantizedFasterRCNN(model)  # model is a Faster R-CNN model
+    a.load_state_dict(torch.load(quantized_model_checkpoint))
 
 
 if __name__ == "__main__":

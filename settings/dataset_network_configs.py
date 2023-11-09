@@ -53,6 +53,8 @@ def network_configs(cfg) -> Dict:
                 DATA_PATH.get_data_path("logs_faster_rcnn"),
             'weights_folder':
                 DATA_PATH.get_data_path("weights_faster_rcnn"),
+            'quantized_weights_folder':
+                DATA_PATH.get_data_path("quantized_weights_faster_rcnn"),
             'prediction_folder':
                 DATA_PATH.get_data_path("prediction_txt_faster_rcnn"),
             'plotting_folder':

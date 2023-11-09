@@ -97,6 +97,8 @@ class Data(_Const):
         # ----------------------------------------------- W E I G H T S ------------------------------------------------
         "weights_faster_rcnn":
             "data/weights/faster_rcnn",
+        "quantized_weights_faster_rcnn":
+            "data/weights/faster_rcnn_quantized",
         "prediction_txt_faster_rcnn":
             "data/predictions/faster_rcnn",
         "logs_faster_rcnn":
