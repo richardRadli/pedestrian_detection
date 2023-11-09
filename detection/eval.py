@@ -43,7 +43,7 @@ class EvalObjectDetectionModel:
 
         self.test_loader = DataLoader(
             test_dataset,
-            batch_size=1,#self.cfg.batch_size,
+            batch_size=self.cfg.batch_size,
             shuffle=False,
             num_workers=0,
             collate_fn=collate_fn
