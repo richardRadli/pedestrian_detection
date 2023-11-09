@@ -20,7 +20,7 @@ from detection_models.network_selectory import NetworkFactory
 from settings.config import ConfigObjectDetection
 from settings.dataset_network_configs import dataset_configs, network_configs
 from utils.utils import (calculate_average, collate_fn, create_timestamp, get_valid_transform,
-                         find_latest_file_in_latest_directory)
+                         find_latest_file_in_latest_directory, use_gpu_if_available)
 from quantization import QuantizedFasterRCNN
 
 
@@ -59,7 +59,7 @@ class EvalObjectDetectionModel:
             self.model.to(self.device)
 
         if not self.cfg.quantized_model:
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.device = use_gpu_if_available()
             self.model = NetworkFactory().create_network(self.cfg.type_of_net, self.dataset_config, device=self.device)
 
             latest_model_file = find_latest_file_in_latest_directory(self.network_config.get("weights_folder"))

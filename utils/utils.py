@@ -4,6 +4,8 @@ import cv2
 import logging
 import numpy as np
 import os
+import pandas as pd
+import torch
 
 from albumentations.pytorch import ToTensorV2
 from datetime import datetime
@@ -163,3 +165,26 @@ def find_latest_file_in_latest_directory(path: str) -> str:
 
     logging.info(f"The latest file is {latest_file}")
     return latest_file
+
+
+def use_gpu_if_available() -> torch.device:
+    """
+    Provides information about the currently available GPUs and returns a torch device for training and inference.
+
+    :return: A torch device for either "cuda" or "cpu".
+    """
+
+    if torch.cuda.is_available():
+        cuda_info = {
+            'CUDA Available': [torch.cuda.is_available()],
+            'CUDA Device Count': [torch.cuda.device_count()],
+            'Current CUDA Device': [torch.cuda.current_device()],
+            'CUDA Device Name': [torch.cuda.get_device_name(0)]
+        }
+
+        df = pd.DataFrame(cuda_info)
+        logging.info(df)
+    else:
+        logging.info("Only CPU is available!")
+
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")

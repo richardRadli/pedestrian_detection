@@ -13,7 +13,7 @@ from dataloader import CaltechDatasetLoader
 from detection_models.network_selectory import NetworkFactory
 from settings.config import ConfigObjectDetection
 from settings.dataset_network_configs import dataset_configs, network_configs
-from utils.utils import collate_fn, get_train_transform, get_valid_transform, create_timestamp
+from utils.utils import collate_fn, get_train_transform, get_valid_transform, create_timestamp, use_gpu_if_available
 
 
 class TrainObjectDetectionModel:
@@ -55,7 +55,7 @@ class TrainObjectDetectionModel:
             collate_fn=collate_fn
         )
 
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = use_gpu_if_available()
         self.model = NetworkFactory().create_network(self.cfg.type_of_net, dataset_config, device=self.device)
 
         parameters = [p for p in self.model.parameters() if p.requires_grad]
