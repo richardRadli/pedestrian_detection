@@ -232,9 +232,9 @@ if __name__ == '__main__':
     try:
         evaluation = EvalObjectDetectionModel()
         evaluation.calculate_metrics(
-            iou_threshold=0.5,
-            confidence_threshold=0.5,
-            plot_results=True
+            iou_threshold=0.45,
+            confidence_threshold=0.25,
+            plot_results=False
         )
     except KeyboardInterrupt as kie:
         logging.error(f"Exception happened: {kie}")

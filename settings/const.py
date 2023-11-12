@@ -138,13 +138,7 @@ class Datasets(_Const):
         "caltech_valid":
             "caltech_pedestrian_dataset/caltech_voc/valid",
         "caltech_test":
-            "caltech_pedestrian_dataset/caltech_voc/test",
-        "ecp_train":
-            "euro_city_dataset/ECP_day_img_train",
-        "ecp_valid":
-            "euro_city_dataset/ECP_day_img_val",
-        "ecp_test":
-            "euro_city_dataset/ECP_day_img_test",
+            "caltech_pedestrian_dataset/caltech_voc/test"
     }
 
     # ------------------------------------------------------------------------------------------------------------------

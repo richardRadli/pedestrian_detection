@@ -43,11 +43,15 @@ class FasterRCNNSelfAttention(nn.Module):
         model.roi_heads.box_predictor = FastRCNNPredictor(in_features, self.num_classes)
 
         # Extend the TwoMLPHead with SelfAttention
-        model.roi_heads.box_head.fc6 = nn.Sequential(
-            model.roi_heads.box_head.fc6,
-            SelfAttention(in_features, self.attention_dim)  # Add SelfAttention layer
+        model.roi_heads.box_head.fc7 = nn.Sequential(
+            model.roi_heads.box_head.fc7,
+            SelfAttention(in_features, self.attention_dim)
         )
 
+        # model.roi_heads.box_predictor.bbox_pred = nn.Sequential(
+        #     model.roi_heads.box_predictor.bbox_pred,
+        #     SelfAttention(in_features, 8)
+        # )
         return model
 
     def forward(self, x, y):
