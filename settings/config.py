@@ -5,9 +5,9 @@ class ConfigObjectDetection:
     def __init__(self):
         self.opt = None
         self.parser = argparse.ArgumentParser()
-        self.parser.add_argument("--dataset_type", type=str, default="caltech")
+        self.parser.add_argument("--dataset_type", type=str, choices="caltech")
         self.parser.add_argument("--type_of_net", type=str, default="Faster_R_CNN_SA",
-                                 help="Faster_R_CNN | Faster_R_CNN_SA | SSD")
+                                 choices="Faster_R_CNN | Faster_R_CNN_SA | SSD")
         self.parser.add_argument('--batch_size', type=int, default=32)
         self.parser.add_argument('--num_epochs', type=int, default=50)  # 40 for FRCNN
         self.parser.add_argument('--learning_rate', type=float, default=0.001)  # 0.001 for FRCNN
