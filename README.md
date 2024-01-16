@@ -1,11 +1,11 @@
 # Pedestrian detection neural networks
 
 This repository explores the capabilities and limitations of currently employed object detection neural networks. 
-The primary focus is comparing it with **Faster R-CNN** [1] and **SSD** [2] architectures. 
+The primary focus is comparing **Faster R-CNN** [1] and **SSD** [2] architectures. 
 Evaluation of neural network efficiency considers training and inference times, and metrics commonly used in the field, such as 
 Precision (P), Recall (R), and mean Average Precision (mAP).
 
-To enhance the performance of the chosen alternative, Faster R-CNN, a self-attention mechanism is introduced. 
+To enhance the performance of Faster R-CNN, a self-attention mechanism is introduced. 
 This mechanism enables the network to process objects more effectively by striving for more efficient feature highlighting. 
 Additionally, various optimization techniques, including pruning and quantization, are applied to reduce the size of 
 trained models and optimize inference time.
